@@ -104,11 +104,7 @@
         }
 
         .question-text {
-            font-size: 20px;
-            font-weight: bold;
-            color: #222;
-            line-height: 1.6;
-            margin-bottom: 28px;
+            display: none;
         }
 
         .answer-input {
@@ -364,9 +360,7 @@
             resultDiv.style.display = 'block';
             resultDiv.className = `result ${s.isCorrect ? 'correct' : 'incorrect'}`;
             resultLabel.textContent = s.isCorrect ? '⭕ 正解！' : '❌ 不正解';
-            resultDetail.innerHTML = s.isCorrect
-                ? `あなたの回答：<span>${s.userAnswer}</span>`
-                : `あなたの回答：<span>${s.userAnswer}</span>　正解：<span>${q.answers[0]}</span>`;
+            resultDetail.innerHTML = '';
 
             const allAnswered = states.every(st => st !== null);
             if (index < questions.length - 1) {
@@ -405,9 +399,7 @@
         resultDiv.style.display = 'block';
         resultDiv.className = `result ${isCorrect ? 'correct' : 'incorrect'}`;
         resultLabel.textContent = isCorrect ? '⭕ 正解！' : '❌ 不正解';
-        resultDetail.innerHTML = isCorrect
-            ? `あなたの回答：<span>${userAnswer}</span>`
-            : `あなたの回答：<span>${userAnswer}</span>　正解：<span>${q.answers[0]}</span>`;
+        resultDetail.innerHTML = '';
 
         renderTabs();
 
