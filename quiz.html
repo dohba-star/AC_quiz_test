@@ -32,7 +32,7 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 28px;
+            margin-bottom: 12px;
         }
 
         .question-nav label {
@@ -75,31 +75,8 @@
             text-align: center;
             color: #e53935;
             font-size: 13px;
-            margin-top: -16px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             min-height: 18px;
-        }
-
-        /* プログレスバー */
-        .progress-text {
-            text-align: center;
-            color: #888;
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .progress-bar {
-            background: #e8edf2;
-            border-radius: 4px;
-            height: 6px;
-            margin-bottom: 32px;
-        }
-
-        .progress-bar-fill {
-            background: #4a90e2;
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.4s ease;
         }
 
         .question-number {
@@ -144,23 +121,17 @@
 
         .result {
             margin-top: 20px;
-            padding: 16px 20px;
+            padding: 20px;
             border-radius: 10px;
             display: none;
+            text-align: center;
         }
 
-        .result.correct {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-        }
-
-        .result.incorrect {
-            background: #fdecea;
-            border-left: 4px solid #e53935;
-        }
+        .result.correct { background: #e8f5e9; }
+        .result.incorrect { background: #fdecea; }
 
         .result-label {
-            font-size: 20px;
+            font-size: 28px;
             font-weight: bold;
         }
 
@@ -183,6 +154,19 @@
         }
 
         .next-btn:hover { background: #2d9147; }
+
+        /* 秘密の問題画面 */
+        .secret-screen {
+            display: none;
+            text-align: center;
+        }
+
+        .secret-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #7b2ff7;
+            margin-bottom: 24px;
+        }
 
         /* 最終結果画面 */
         .final-screen { text-align: center; display: none; }
@@ -257,11 +241,6 @@
             <button class="question-nav-btn" id="nav-btn">移動</button>
         </div>
         <div class="nav-error" id="nav-error"></div>
-
-        <div class="progress-text" id="progress-text"></div>
-        <div class="progress-bar">
-            <div class="progress-bar-fill" id="progress-fill"></div>
-        </div>
         <div class="question-number" id="question-number"></div>
         <div class="question-text" id="question-text"></div>
         <input type="text" class="answer-input" id="answer-input" placeholder="回答を入力してください" />
@@ -270,6 +249,18 @@
             <div class="result-label" id="result-label"></div>
         </div>
         <button class="next-btn" id="next-btn"></button>
+    </div>
+
+    <!-- 秘密の問題画面 -->
+    <div id="secret-screen" class="secret-screen">
+        <div class="secret-title">🎉 全問正解！秘密の問題</div>
+        <div class="question-number">秘密の問題</div>
+        <input type="text" class="answer-input" id="secret-input" placeholder="回答を入力してください" />
+        <button class="submit-btn" id="secret-submit-btn">回答する</button>
+        <div class="result" id="secret-result">
+            <div class="result-label" id="secret-result-label"></div>
+        </div>
+        <button class="next-btn" id="secret-next-btn">結果を見る</button>
     </div>
 
     <!-- 最終結果画面 -->
@@ -300,6 +291,11 @@
         }
     ];
 
+    const secretQuestion = {
+        text: '奥村さんの好きなキノコは？',
+        answers: ['エノキ', 'えのき']
+    };
+
     function normalize(str) {
         return str
             .trim()
@@ -314,25 +310,29 @@
     let currentIndex = 0;
     const states = Array(questions.length).fill(null);
 
-    const navInput     = document.getElementById('nav-input');
-    const navBtn       = document.getElementById('nav-btn');
-    const navError     = document.getElementById('nav-error');
-    const progressText = document.getElementById('progress-text');
-    const progressFill = document.getElementById('progress-fill');
+    const navInput       = document.getElementById('nav-input');
+    const navBtn         = document.getElementById('nav-btn');
+    const navError       = document.getElementById('nav-error');
     const questionNumber = document.getElementById('question-number');
-    const questionText = document.getElementById('question-text');
-    const answerInput  = document.getElementById('answer-input');
-    const submitBtn    = document.getElementById('submit-btn');
-    const resultDiv    = document.getElementById('result');
-    const resultLabel  = document.getElementById('result-label');
-    const nextBtn      = document.getElementById('next-btn');
-    const quizScreen   = document.getElementById('quiz-screen');
-    const finalScreen  = document.getElementById('final-screen');
+    const questionText   = document.getElementById('question-text');
+    const answerInput    = document.getElementById('answer-input');
+    const submitBtn      = document.getElementById('submit-btn');
+    const resultDiv      = document.getElementById('result');
+    const resultLabel    = document.getElementById('result-label');
+    const nextBtn        = document.getElementById('next-btn');
+    const quizScreen     = document.getElementById('quiz-screen');
+    const secretScreen   = document.getElementById('secret-screen');
+    const finalScreen    = document.getElementById('final-screen');
+    const secretInput    = document.getElementById('secret-input');
+    const secretSubmitBtn = document.getElementById('secret-submit-btn');
+    const secretResult   = document.getElementById('secret-result');
+    const secretResultLabel = document.getElementById('secret-result-label');
+    const secretNextBtn  = document.getElementById('secret-next-btn');
 
     function navigateByInput() {
         const num = parseInt(navInput.value);
         if (isNaN(num) || num < 1 || num > questions.length) {
-            navError.textContent = `1〜${questions.length} の数字を入力してください`;
+            navError.textContent = 'その問題は存在しません';
             return;
         }
         navError.textContent = '';
@@ -349,8 +349,6 @@
         const q = questions[index];
         const s = states[index];
 
-        progressText.textContent = `問題 ${index + 1} / ${questions.length}`;
-        progressFill.style.width = `${((index + 1) / questions.length) * 100}%`;
         questionNumber.textContent = q.number;
         questionText.textContent = q.text;
 
@@ -363,11 +361,12 @@
             resultLabel.textContent = s.isCorrect ? '⭕ 正解！' : '❌ 不正解';
 
             const allAnswered = states.every(st => st !== null);
-            if (index < questions.length - 1) {
-                nextBtn.textContent = '次の問題へ →';
-                nextBtn.style.display = 'block';
-            } else if (allAnswered) {
+            const allCorrect  = states.every(st => st && st.isCorrect);
+            if (allAnswered && !allCorrect) {
                 nextBtn.textContent = '結果を見る';
+                nextBtn.style.display = 'block';
+            } else if (!allAnswered && index < questions.length - 1) {
+                nextBtn.textContent = '次の問題へ →';
                 nextBtn.style.display = 'block';
             } else {
                 nextBtn.style.display = 'none';
@@ -399,11 +398,16 @@
         resultLabel.textContent = isCorrect ? '⭕ 正解！' : '❌ 不正解';
 
         const allAnswered = states.every(s => s !== null);
-        if (currentIndex < questions.length - 1) {
-            nextBtn.textContent = '次の問題へ →';
+        const allCorrect  = states.every(s => s && s.isCorrect);
+
+        if (allAnswered && allCorrect) {
+            nextBtn.textContent = '秘密の問題へ';
             nextBtn.style.display = 'block';
-        } else if (allAnswered) {
+        } else if (allAnswered && !allCorrect) {
             nextBtn.textContent = '結果を見る';
+            nextBtn.style.display = 'block';
+        } else if (currentIndex < questions.length - 1) {
+            nextBtn.textContent = '次の問題へ →';
             nextBtn.style.display = 'block';
         }
 
@@ -411,8 +415,33 @@
         // submitToGoogleForm(currentIndex, userAnswer);
     }
 
+    function showSecret() {
+        quizScreen.style.display = 'none';
+        secretScreen.style.display = 'block';
+        secretInput.value = '';
+        secretInput.disabled = false;
+        secretSubmitBtn.disabled = false;
+        secretResult.style.display = 'none';
+        secretNextBtn.style.display = 'none';
+        secretInput.focus();
+    }
+
+    function checkSecretAnswer() {
+        const userAnswer = secretInput.value.trim();
+        if (!userAnswer) return;
+
+        const isCorrect = isCorrectAnswer(userAnswer, secretQuestion.answers);
+        secretInput.disabled = true;
+        secretSubmitBtn.disabled = true;
+        secretResult.style.display = 'block';
+        secretResult.className = `result ${isCorrect ? 'correct' : 'incorrect'}`;
+        secretResultLabel.textContent = isCorrect ? '⭕ 正解！' : '❌ 不正解';
+        secretNextBtn.style.display = 'block';
+    }
+
     function showFinal() {
         quizScreen.style.display = 'none';
+        secretScreen.style.display = 'none';
         finalScreen.style.display = 'block';
 
         const score = states.filter(s => s && s.isCorrect).length;
@@ -440,12 +469,16 @@
     submitBtn.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
     nextBtn.addEventListener('click', () => {
-        if (currentIndex < questions.length - 1) {
-            goToQuestion(currentIndex + 1);
+        const allCorrect = states.every(s => s && s.isCorrect);
+        if (allCorrect) {
+            showSecret();
         } else {
             showFinal();
         }
     });
+    secretSubmitBtn.addEventListener('click', checkSecretAnswer);
+    secretInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkSecretAnswer(); });
+    secretNextBtn.addEventListener('click', showFinal);
 
     // Google Forms 送信関数（後で設定）
     // function submitToGoogleForm(questionIndex, answer) {
