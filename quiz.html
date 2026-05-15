@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>クイズイベント</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            background: #e8edf2;
+            border-radius: 4px;
+            height: 6px;
+            margin-bottom: 32px;
+        }
+
+        .progress-bar-fill {
+            background: #4a90e2;
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+
+        .question-number {
+            font-size: 13px;
+            color: #4a90e2;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .question-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: #222;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #dde3ea;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .answer-input:focus { border-color: #4a90e2; }
+        .answer-input:disabled { background: #f8f9fa; }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) { background: #3a7bd5; }
+        .submit-btn:disabled { background: #b0c4de; cursor: not-allowed; }
+
+        .result {
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.correct {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .result.incorrect {
+            background: #fdecea;
+            border-left: 4px solid #e53935;
+        }
+
+        .result-label {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .result.correct .result-label { color: #2e7d32; }
+        .result.incorrect .result-label { color: #c62828; }
+
+        .result-detail { font-size: 14px; color: #555; }
+        .result-detail span { font-weight: bold; color: #222; }
+
+        .next-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #34a853;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: none;
+        }
+
+        .next-btn:hover { background: #2d9147; }
+
+        /* 最終結果画面 */
+        .final-screen {
+            text-align: center;
+            display: none;
+        }
+
+        .final-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #222;
+            margin-bottom: 16px;
+        }
+
+        .final-score {
+            font-size: 64px;
+            font-weight: bold;
+            color: #4a90e2;
+            margin-bottom: 4px;
+        }
+
+        .final-score-label {
+            font-size: 15px;
+            color: #888;
+            margin-bottom: 32px;
+        }
+
+        .final-summary {
+            text-align: left;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .summary-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .summary-q {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .summary-result {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .badge-correct { background: #e8f5e9; color: #2e7d32; }
+        .badge-incorrect { background: #fdecea; color: #c62828; }
+
+        .summary-answer { font-size: 14px; color: #333; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- クイズ画面 -->
+    <div id="quiz-screen">
+        <div class="progress-text" id="progress-text">問題 1 / 3</div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="question-number" id="question-number"></div>
+        <div class="question-text" id="question-text"></div>
+        <input type="text" class="answer-input" id="answer-input" placeholder="回答を入力してください" />
+        <button class="submit-btn" id="submit-btn">回答する</button>
+        <div class="result" id="result">
+            <div class="result-label" id="result-label"></div>
+            <div class="result-detail" id="result-detail"></div>
+        </div>
+        <button class="next-btn" id="next-btn"></button>
+    </div>
+
+    <!-- 最終結果画面 -->
+    <div id="final-screen" class="final-screen">
+        <div class="final-title">クイズ終了！</div>
+        <div class="final-score" id="final-score"></div>
+        <div class="final-score-label">正解数 / 全問数</div>
+        <div class="final-summary" id="final-summary"></div>
+    </div>
+
+</div>
+<script>
+    const questions = [
+        {
+            number: '第1問',
+            text: 'ベストテンで齊藤さんが演じたのは誰？',
+            answer: '黒柳徹子'
+        },
+        {
+            number: '第2問',
+            text: '三島さんが歌った曲は「●●座の女」',
+            answer: 'さそり'
+        },
+        {
+            number: '第3問',
+            text: '奥村さんに所縁のある新潟から問題。これは何市？',
+            answer: '魚沼'
+        }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    const userAnswers = [];
+
+    const progressText  = document.getElementById('progress-text');
+    const progressFill  = document.getElementById('progress-fill');
+    const questionNumber = document.getElementById('question-number');
+    const questionText  = document.getElementById('question-text');
+    const answerInput   = document.getElementById('answer-input');
+    const submitBtn     = document.getElementById('submit-btn');
+    const resultDiv     = document.getElementById('result');
+    const resultLabel   = document.getElementById('result-label');
+    const resultDetail  = document.getElementById('result-detail');
+    const nextBtn       = document.getElementById('next-btn');
+    const quizScreen    = document.getElementById('quiz-screen');
+    const finalScreen   = document.getElementById('final-screen');
+
+    function loadQuestion(index) {
+        const q = questions[index];
+        progressText.textContent = `問題 ${index + 1} / ${questions.length}`;
+        progressFill.style.width = `${((index + 1) / questions.length) * 100}%`;
+        questionNumber.textContent = q.number;
+        questionText.textContent = q.text;
+        answerInput.value = '';
+        answerInput.disabled = false;
+        answerInput.focus();
+        resultDiv.style.display = 'none';
+        resultDiv.className = 'result';
+        nextBtn.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+
+    function checkAnswer() {
+        const userAnswer = answerInput.value.trim();
+        if (!userAnswer) return;
+
+        const correct = questions[currentIndex].answer;
+        const isCorrect = userAnswer === correct;
+
+        if (isCorrect) score++;
+        userAnswers.push({ userAnswer, isCorrect });
+
+        answerInput.disabled = true;
+        submitBtn.disabled = true;
+
+        resultDiv.style.display = 'block';
+        resultDiv.className = `result ${isCorrect ? 'correct' : 'incorrect'}`;
+        resultLabel.textContent = isCorrect ? '⭕ 正解！' : '❌ 不正解';
+        resultDetail.innerHTML = isCorrect
+            ? `あなたの回答：<span>${userAnswer}</span>`
+            : `あなたの回答：<span>${userAnswer}</span>　正解：<span>${correct}</span>`;
+
+        nextBtn.textContent = currentIndex < questions.length - 1 ? '次の問題へ →' : '結果を見る';
+        nextBtn.style.display = 'block';
+
+        // Google Forms 送信（後で設定）
+        // submitToGoogleForm(currentIndex, userAnswer);
+    }
+
+    function showFinal() {
+        quizScreen.style.display = 'none';
+        finalScreen.style.display = 'block';
+        document.getElementById('final-score').textContent = `${score} / ${questions.length}`;
+
+        const summaryEl = document.getElementById('final-summary');
+        summaryEl.innerHTML = questions.map((q, i) => {
+            const { userAnswer, isCorrect } = userAnswers[i];
+            return `
+                <div class="summary-item">
+                    <div class="summary-q">${q.number}：${q.text}</div>
+                    <div class="summary-result">
+                        <span class="badge ${isCorrect ? 'badge-correct' : 'badge-incorrect'}">${isCorrect ? '正解' : '不正解'}</span>
+                        <span class="summary-answer">
+                            あなたの回答：${userAnswer}${isCorrect ? '' : `　正解：${q.answer}`}
+                        </span>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    submitBtn.addEventListener('click', checkAnswer);
+    answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+    nextBtn.addEventListener('click', () => {
+        currentIndex++;
+        if (currentIndex < questions.length) {
+            loadQuestion(currentIndex);
+        } else {
+            showFinal();
+        }
+    });
+
+    // Google Forms 送信関数（後で設定）
+    // function submitToGoogleForm(questionIndex, answer) {
+    //     const formUrl = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
+    //     const entryIds = ['entry.XXXXXXXXX', 'entry.XXXXXXXXX', 'entry.XXXXXXXXX'];
+    //     const body = new FormData();
+    //     body.append(entryIds[questionIndex], answer);
+    //     fetch(formUrl, { method: 'POST', mode: 'no-cors', body });
+    // }
+
+    loadQuestion(0);
+</script>
+</body>
+</html>
