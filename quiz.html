@@ -155,6 +155,23 @@
 
         .next-btn:hover { background: #2d9147; }
 
+        .secret-result-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #34a853;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: none;
+        }
+
+        .secret-result-btn:hover { background: #2d9147; }
+
         /* 秘密の問題画面 */
         .secret-screen {
             display: none;
@@ -253,7 +270,7 @@
 
     <!-- 秘密の問題画面 -->
     <div id="secret-screen" class="secret-screen">
-        <div class="secret-title">🎉 全問正解！秘密の問題</div>
+        <div class="secret-title">すべての答えから導き出される最後の問題の答えは？</div>
         <div class="question-number">秘密の問題</div>
         <input type="text" class="answer-input" id="secret-input" placeholder="回答を入力してください" />
         <button class="submit-btn" id="secret-submit-btn">回答する</button>
@@ -365,9 +382,6 @@
             if (allAnswered && !allCorrect) {
                 nextBtn.textContent = '結果を見る';
                 nextBtn.style.display = 'block';
-            } else if (!allAnswered && index < questions.length - 1) {
-                nextBtn.textContent = '次の問題へ →';
-                nextBtn.style.display = 'block';
             } else {
                 nextBtn.style.display = 'none';
             }
@@ -401,13 +415,9 @@
         const allCorrect  = states.every(s => s && s.isCorrect);
 
         if (allAnswered && allCorrect) {
-            nextBtn.textContent = '秘密の問題へ';
-            nextBtn.style.display = 'block';
+            setTimeout(showSecret, 1000);
         } else if (allAnswered && !allCorrect) {
             nextBtn.textContent = '結果を見る';
-            nextBtn.style.display = 'block';
-        } else if (currentIndex < questions.length - 1) {
-            nextBtn.textContent = '次の問題へ →';
             nextBtn.style.display = 'block';
         }
 
@@ -468,14 +478,7 @@
     navInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') navigateByInput(); });
     submitBtn.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
-    nextBtn.addEventListener('click', () => {
-        const allCorrect = states.every(s => s && s.isCorrect);
-        if (allCorrect) {
-            showSecret();
-        } else {
-            showFinal();
-        }
-    });
+    nextBtn.addEventListener('click', showFinal);
     secretSubmitBtn.addEventListener('click', checkSecretAnswer);
     secretInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkSecretAnswer(); });
     secretNextBtn.addEventListener('click', showFinal);
