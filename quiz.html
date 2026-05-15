@@ -26,52 +26,58 @@
             box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
 
-        /* タブ */
-        .tab-bar {
+        /* 問題番号入力 */
+        .question-nav {
             display: flex;
-            gap: 6px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 28px;
         }
 
-        .tab-btn {
-            flex: 1;
-            min-width: 60px;
-            padding: 8px 4px;
-            font-size: 12px;
+        .question-nav label {
+            font-size: 18px;
             font-weight: bold;
-            border: 2px solid #dde3ea;
-            border-radius: 8px;
-            background: white;
-            color: #aaa;
-            cursor: pointer;
-            transition: all 0.2s;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        .question-nav-input {
+            width: 72px;
+            padding: 10px 8px;
+            font-size: 22px;
+            font-weight: bold;
             text-align: center;
+            border: 2px solid #dde3ea;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
         }
 
-        .tab-btn.active {
-            border-color: #4a90e2;
-            color: #4a90e2;
-            background: #f0f6ff;
+        .question-nav-input:focus { border-color: #4a90e2; }
+
+        .question-nav-btn {
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        .tab-btn.correct {
-            border-color: #4caf50;
-            color: #2e7d32;
-            background: #f1f8f1;
-        }
+        .question-nav-btn:hover { background: #3a7bd5; }
 
-        .tab-btn.incorrect {
-            border-color: #e53935;
-            color: #c62828;
-            background: #fef5f5;
-        }
-
-        .tab-btn.correct.active,
-        .tab-btn.incorrect.active {
-            border-color: #4a90e2;
-            color: #4a90e2;
-            background: #f0f6ff;
+        .nav-error {
+            text-align: center;
+            color: #e53935;
+            font-size: 13px;
+            margin-top: -16px;
+            margin-bottom: 12px;
+            min-height: 18px;
         }
 
         /* プログレスバー */
@@ -103,9 +109,7 @@
             margin-bottom: 12px;
         }
 
-        .question-text {
-            display: none;
-        }
+        .question-text { display: none; }
 
         .answer-input {
             width: 100%;
@@ -158,14 +162,10 @@
         .result-label {
             font-size: 20px;
             font-weight: bold;
-            margin-bottom: 6px;
         }
 
         .result.correct .result-label { color: #2e7d32; }
         .result.incorrect .result-label { color: #c62828; }
-
-        .result-detail { font-size: 14px; color: #555; }
-        .result-detail span { font-weight: bold; color: #222; }
 
         .next-btn {
             width: 100%;
@@ -250,7 +250,14 @@
 
     <!-- クイズ画面 -->
     <div id="quiz-screen">
-        <div class="tab-bar" id="tab-bar"></div>
+        <div class="question-nav">
+            <label for="nav-input">第</label>
+            <input type="number" class="question-nav-input" id="nav-input" min="1" placeholder="?" />
+            <label for="nav-input">問</label>
+            <button class="question-nav-btn" id="nav-btn">移動</button>
+        </div>
+        <div class="nav-error" id="nav-error"></div>
+
         <div class="progress-text" id="progress-text"></div>
         <div class="progress-bar">
             <div class="progress-bar-fill" id="progress-fill"></div>
@@ -261,7 +268,6 @@
         <button class="submit-btn" id="submit-btn">回答する</button>
         <div class="result" id="result">
             <div class="result-label" id="result-label"></div>
-            <div class="result-detail" id="result-detail"></div>
         </div>
         <button class="next-btn" id="next-btn"></button>
     </div>
@@ -294,7 +300,6 @@
         }
     ];
 
-    // カタカナ→ひらがな変換（ひらがなで統一して比較する）
     function normalize(str) {
         return str
             .trim()
@@ -303,15 +308,15 @@
     }
 
     function isCorrectAnswer(userAnswer, answers) {
-        const normalizedUser = normalize(userAnswer);
-        return answers.some(a => normalize(a) === normalizedUser);
+        return answers.some(a => normalize(a) === normalize(userAnswer));
     }
 
     let currentIndex = 0;
-    // 各問の回答状態: null=未回答, { userAnswer, isCorrect }=回答済み
     const states = Array(questions.length).fill(null);
 
-    const tabBar       = document.getElementById('tab-bar');
+    const navInput     = document.getElementById('nav-input');
+    const navBtn       = document.getElementById('nav-btn');
+    const navError     = document.getElementById('nav-error');
     const progressText = document.getElementById('progress-text');
     const progressFill = document.getElementById('progress-fill');
     const questionNumber = document.getElementById('question-number');
@@ -320,24 +325,23 @@
     const submitBtn    = document.getElementById('submit-btn');
     const resultDiv    = document.getElementById('result');
     const resultLabel  = document.getElementById('result-label');
-    const resultDetail = document.getElementById('result-detail');
     const nextBtn      = document.getElementById('next-btn');
     const quizScreen   = document.getElementById('quiz-screen');
     const finalScreen  = document.getElementById('final-screen');
 
-    function renderTabs() {
-        tabBar.innerHTML = questions.map((q, i) => {
-            const s = states[i];
-            let cls = 'tab-btn';
-            if (i === currentIndex) cls += ' active';
-            else if (s) cls += s.isCorrect ? ' correct' : ' incorrect';
-            const icon = s ? (s.isCorrect ? '⭕' : '❌') : '';
-            return `<button class="${cls}" onclick="goToQuestion(${i})">${icon} ${q.number}</button>`;
-        }).join('');
+    function navigateByInput() {
+        const num = parseInt(navInput.value);
+        if (isNaN(num) || num < 1 || num > questions.length) {
+            navError.textContent = `1〜${questions.length} の数字を入力してください`;
+            return;
+        }
+        navError.textContent = '';
+        goToQuestion(num - 1);
     }
 
     function goToQuestion(index) {
         currentIndex = index;
+        navInput.value = index + 1;
         loadQuestion(index);
     }
 
@@ -350,17 +354,13 @@
         questionNumber.textContent = q.number;
         questionText.textContent = q.text;
 
-        renderTabs();
-
         if (s) {
-            // 回答済みの場合：結果を復元して表示
             answerInput.value = s.userAnswer;
             answerInput.disabled = true;
             submitBtn.disabled = true;
             resultDiv.style.display = 'block';
             resultDiv.className = `result ${s.isCorrect ? 'correct' : 'incorrect'}`;
             resultLabel.textContent = s.isCorrect ? '⭕ 正解！' : '❌ 不正解';
-            resultDetail.innerHTML = '';
 
             const allAnswered = states.every(st => st !== null);
             if (index < questions.length - 1) {
@@ -373,7 +373,6 @@
                 nextBtn.style.display = 'none';
             }
         } else {
-            // 未回答
             answerInput.value = '';
             answerInput.disabled = false;
             answerInput.focus();
@@ -392,16 +391,12 @@
         const isCorrect = isCorrectAnswer(userAnswer, q.answers);
 
         states[currentIndex] = { userAnswer, isCorrect };
-
         answerInput.disabled = true;
         submitBtn.disabled = true;
 
         resultDiv.style.display = 'block';
         resultDiv.className = `result ${isCorrect ? 'correct' : 'incorrect'}`;
         resultLabel.textContent = isCorrect ? '⭕ 正解！' : '❌ 不正解';
-        resultDetail.innerHTML = '';
-
-        renderTabs();
 
         const allAnswered = states.every(s => s !== null);
         if (currentIndex < questions.length - 1) {
@@ -440,6 +435,8 @@
         }).join('');
     }
 
+    navBtn.addEventListener('click', navigateByInput);
+    navInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') navigateByInput(); });
     submitBtn.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
     nextBtn.addEventListener('click', () => {
