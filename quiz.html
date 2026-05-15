@@ -248,9 +248,15 @@
             number: '第3問',
             text: '奥村さんに所縁のある新潟から問題。これは何市？',
             answers: ['魚沼', 'うおぬま'],
-            secret: { word: '奥村', url: 'https://agri-connect.co.jp/', taps: 5 }
+            secret: { word: '奥村', taps: 5 }
         }
     ];
+
+    const secretQuestion = {
+        number: '🤫 秘密の問題',
+        text: '奥村さんの好きなキノコは？',
+        answers: ['エノキ', 'えのき']
+    };
 
     // カタカナ→ひらがな変換（ひらがなで統一して比較する）
     function normalize(str) {
@@ -268,6 +274,7 @@
     let currentIndex = 0;
     let score = 0;
     const userAnswers = [];
+    let inSecretQuestion = false;
 
     const progressText  = document.getElementById('progress-text');
     const progressFill  = document.getElementById('progress-fill');
@@ -284,7 +291,23 @@
 
     let secretTapCount = 0;
 
+    function showSecretQuestion() {
+        inSecretQuestion = true;
+        progressText.textContent = '🤫 秘密の問題';
+        progressFill.style.width = '100%';
+        questionNumber.textContent = secretQuestion.number;
+        questionText.textContent = secretQuestion.text;
+        answerInput.value = '';
+        answerInput.disabled = false;
+        answerInput.focus();
+        resultDiv.style.display = 'none';
+        resultDiv.className = 'result';
+        nextBtn.style.display = 'none';
+        submitBtn.disabled = false;
+    }
+
     function loadQuestion(index) {
+        inSecretQuestion = false;
         const q = questions[index];
         progressText.textContent = `問題 ${index + 1} / ${questions.length}`;
         progressFill.style.width = `${((index + 1) / questions.length) * 100}%`;
@@ -297,7 +320,7 @@
             document.getElementById('secret-word').addEventListener('click', () => {
                 secretTapCount++;
                 if (secretTapCount >= q.secret.taps) {
-                    window.location.href = q.secret.url;
+                    showSecretQuestion();
                 }
             });
         } else {
@@ -317,11 +340,13 @@
         const userAnswer = answerInput.value.trim();
         if (!userAnswer) return;
 
-        const q = questions[currentIndex];
+        const q = inSecretQuestion ? secretQuestion : questions[currentIndex];
         const isCorrect = isCorrectAnswer(userAnswer, q.answers);
 
-        if (isCorrect) score++;
-        userAnswers.push({ userAnswer, isCorrect });
+        if (!inSecretQuestion) {
+            if (isCorrect) score++;
+            userAnswers.push({ userAnswer, isCorrect });
+        }
 
         answerInput.disabled = true;
         submitBtn.disabled = true;
@@ -333,7 +358,11 @@
             ? `あなたの回答：<span>${userAnswer}</span>`
             : `あなたの回答：<span>${userAnswer}</span>　正解：<span>${q.answers[0]}</span>`;
 
-        nextBtn.textContent = currentIndex < questions.length - 1 ? '次の問題へ →' : '結果を見る';
+        if (inSecretQuestion) {
+            nextBtn.textContent = '第3問に戻る';
+        } else {
+            nextBtn.textContent = currentIndex < questions.length - 1 ? '次の問題へ →' : '結果を見る';
+        }
         nextBtn.style.display = 'block';
 
         // Google Forms 送信（後で設定）
@@ -364,6 +393,10 @@
     submitBtn.addEventListener('click', checkAnswer);
     answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
     nextBtn.addEventListener('click', () => {
+        if (inSecretQuestion) {
+            loadQuestion(currentIndex);
+            return;
+        }
         currentIndex++;
         if (currentIndex < questions.length) {
             loadQuestion(currentIndex);
