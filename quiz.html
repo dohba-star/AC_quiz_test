@@ -247,7 +247,8 @@
         {
             number: '第3問',
             text: '奥村さんに所縁のある新潟から問題。これは何市？',
-            answers: ['魚沼', 'うおぬま']
+            answers: ['魚沼', 'うおぬま'],
+            secret: { word: '奥村', url: 'https://agri-connect.co.jp/', taps: 5 }
         }
     ];
 
@@ -281,12 +282,28 @@
     const quizScreen    = document.getElementById('quiz-screen');
     const finalScreen   = document.getElementById('final-screen');
 
+    let secretTapCount = 0;
+
     function loadQuestion(index) {
         const q = questions[index];
         progressText.textContent = `問題 ${index + 1} / ${questions.length}`;
         progressFill.style.width = `${((index + 1) / questions.length) * 100}%`;
         questionNumber.textContent = q.number;
-        questionText.textContent = q.text;
+
+        if (q.secret) {
+            secretTapCount = 0;
+            const escaped = q.text.replace(q.secret.word, `<span id="secret-word" style="cursor:pointer">${q.secret.word}</span>`);
+            questionText.innerHTML = escaped;
+            document.getElementById('secret-word').addEventListener('click', () => {
+                secretTapCount++;
+                if (secretTapCount >= q.secret.taps) {
+                    window.location.href = q.secret.url;
+                }
+            });
+        } else {
+            questionText.textContent = q.text;
+        }
+
         answerInput.value = '';
         answerInput.disabled = false;
         answerInput.focus();
